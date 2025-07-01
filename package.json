@@ -23,16 +23,27 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@google/genai": "^1.7.0",
+    "@google/generative-ai": "^0.24.1",
+    "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/schedule": "^6.0.0",
     "@nestjs/swagger": "^11.2.0",
     "@prisma/client": "^6.10.1",
+    "axios": "^1.10.0",
+    "cheerio": "^1.1.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "https-proxy-agent": "^7.0.6",
+    "openai": "^5.8.2",
+    "proxy-agent": "^6.5.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "undici": "^7.11.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
