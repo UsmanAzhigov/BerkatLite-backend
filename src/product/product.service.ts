@@ -92,7 +92,7 @@ export class ProductService {
    */
   async onModuleInit() {
     await this.updateLinksAndProcessBatch();
-    setInterval(() => this.updateLinksAndProcessBatch(), 5 * 60 * 1000);
+    setInterval(() => this.updateLinksAndProcessBatch(), 4 * 60 * 1000);
   }
 
   private async updateLinksAndProcessBatch() {
@@ -127,19 +127,48 @@ export class ProductService {
     try {
       const { data } = await axios.get(url);
       const $ = cheerio.load(data);
-      const links: string[] = [];
+      const rawLinks: string[] = [];
 
       $('a[href]').each((_, el) => {
         const href = $(el).attr('href');
-        if (href && /\/\d+-/.test(href)) {
+        if (
+          href &&
+          /\/\d+-/.test(href) &&
+          !/\.(jpg|jpeg|png|gif|webp|pdf)$/i.test(href)
+        ) {
           const fullLink = href.startsWith('http')
             ? href
             : `https://berkat.ru${href}`;
-          links.push(fullLink);
+          rawLinks.push(fullLink);
         }
       });
 
-      return links;
+      const uniqueLinks = [...new Set(rawLinks)];
+
+      const filteredLinks: string[] = [];
+
+      for (const link of uniqueLinks) {
+        try {
+          const html = await this.fetchAdPage(link);
+          const $page = cheerio.load(html);
+          const text = $page('body').text().replace(/\s+/g, ' ').toLowerCase();
+
+          if (
+            category === 'avto' &&
+            /услуги|вмятины|покраска|ремонт|эвакуатор|диагностика|мастер|автопрокат|удаление|установка|тонировка/i.test(
+              text,
+            )
+          ) {
+            continue;
+          }
+
+          filteredLinks.push(link);
+        } catch (err) {
+          this.logger.warn(`Ошибка проверки ссылки ${link}: ${err.message}`);
+        }
+      }
+
+      return filteredLinks;
     } catch (err) {
       this.logger.warn(`Ошибка загрузки категории ${category}: ${err.message}`);
       return [];
@@ -173,63 +202,62 @@ export class ProductService {
    * Загружает HTML-страницу объявления по ссылке.
    */
   private async fetchAdPage(url: string) {
-    const { data } = await axios.get(url);
-    return data;
+    const response = await axios.get(url, { responseType: 'text' });
+
+    const contentType = response.headers['content-type'];
+    if (!contentType || !contentType.includes('text/html')) {
+      throw new Error(`Неподдерживаемый тип содержимого: ${contentType}`);
+    }
+
+    return response.data;
   }
 
   /**
    * Извлекает данные продукта из HTML-страницы с помощью ИИ.
    */
-  private async extractProductFromHtml(html: string) {
+  async extractProductFromHtml(html: string) {
     const $ = cheerio.load(html);
-    const text = $('body').text().replace(/\s+/g, ' ').trim();
-
-    const images: string[] = [];
-    $('img[src]').each((_, el) => {
-      let src = $(el).attr('src');
-      if (src && !src.startsWith('http')) {
-        src = `https://berkat.ru${src}`;
-      }
-      if (src) images.push(src);
-    });
-
-    if (/эвакуатор|услуги|ремонт|вмятины|покраска/i.test(text)) {
-      this.logger.warn(`Пропускаю объявление: услуги, а не товар`);
-      return;
-    }
+    const cleanedHtml = $('body').html()?.replace(/\s+/g, ' ').trim() || '';
 
     const prompt = `
-Ты — фильтр объявлений с сайта https://berkat.ru.
-Твоя задача — вернуть ТОЛЬКО товары (не услуги, не аренду, не рекламу) в JSON:
+Ты — парсер объявлений с сайта https://berkat.ru.
+На вход ты получаешь HTML-текст объявления. Твоя задача — вернуть JSON с товаром в следующем формате:
+
 {
-  title: string,
-  price: number,
-  images: string[],
-  category: "Транспорт" | "Недвижимость",
-  popular: number,
-  description: string,
-  phone: string[],
-  properties: { name: string, text: string }[],
-  city: string
+  "title": "string", (Генерируй новый title, без мусора, коротко и понятно)
+  "description": "string",(Генерируй новый description, без мусора, коротко и понятно)
+  "price": number,
+  "images": string[], (В начало ссылки изображения вставь https://berkat.ru)
+  "category": "Транспорт" | "Недвижимость",
+  "popular": number,
+  "phone": string[],
+  "properties": { "name": string, "text": string }[],
+  "city": "string"
 }
-Если это не товар — ничего не возвращай.
-Вот текст:
-${text}
-`;
+
+Ответь только валидным JSON, без пояснений, текста и markdown.
+
+Вот HTML объявления:
+${cleanedHtml}
+    `;
 
     const aiResponse = await this.togetherAI.chat(prompt);
 
-    const cleaned = aiResponse
-      .trim()
-      .replace(/^```json\s*/, '')
-      .replace(/```$/, '')
-      .replace(/^json\s*/, '')
-      .trim();
+    this.logger.debug('Ответ от ИИ:', aiResponse);
+
+    const match = aiResponse.match(/```json\s*([\s\S]*?)\s*```/);
+    let jsonContent = match?.[1]?.trim();
+
+    if (!jsonContent) {
+      JSON.parse(aiResponse);
+      jsonContent = aiResponse.trim();
+    }
 
     try {
-      return JSON.parse(cleaned);
+      const product = JSON.parse(jsonContent);
+      return product;
     } catch (err) {
-      this.logger.warn('Не удалось распарсить JSON от ИИ:', cleaned);
+      this.logger.warn('Ошибка при парсинге JSON от ИИ:', jsonContent);
       throw new Error('Неверный JSON от ИИ');
     }
   }
