@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { ProductController } from './product.controller';
 import { PrismaModule } from '../prisma/prisma.module';
-import { OpenAIModule } from '../openai/openai.module';
+import { TogetherAIModule } from '../together/togetherai.module';
 
 @Module({
-  imports: [PrismaModule, OpenAIModule],
+  imports: [PrismaModule, TogetherAIModule],
   controllers: [ProductController],
   providers: [ProductService],
   exports: [ProductService],

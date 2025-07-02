@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductModule } from './product/product.module';
 import { ConfigModule } from '@nestjs/config';
-import { OpenAIModule } from './openai/openai.module';
+import { TogetherAIModule } from './together/togetherai.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -15,7 +15,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     }),
     PrismaModule,
     ProductModule,
-    OpenAIModule,
+    TogetherAIModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],

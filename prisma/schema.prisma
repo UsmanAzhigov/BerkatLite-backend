@@ -8,25 +8,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model ProductProperties {
-  name String
-  text String
-  product Product @relation(fields: [productId], references: [id])
-  productId String
-  @@id([productId, name])
-}
-
 model Product {
   id          String   @id @default(uuid())
-  title       String
-  description String?
+  title       String   
+  description String
   price       Int
-  imageUrl    String?
-  category    String?
+  images      String[]
+  category    String
   popular     Int      @default(0)
-  city        String?
+  city        String
   phone       String[]
-  properties  ProductProperties[]
+  properties  Json?
   updatedAt   DateTime @updatedAt
   createdAt   DateTime @default(now())
 }
+

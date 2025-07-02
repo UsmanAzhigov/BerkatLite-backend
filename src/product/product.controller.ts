@@ -34,11 +34,6 @@ export class ProductController {
     return this.productService.findBySort(sort, sortBy);
   }
 
-  @Get('berkat-links')
-  getBerkatLinks() {
-    return this.productService.getAllLinks();
-  }
-
   @Get('search')
   @ApiQuery({ name: 'query', type: String })
   searchProducts(@Query('query') query: string) {
