@@ -11,7 +11,22 @@ export class ProductService {
   private readonly categories = ['avto', 'nedvizhimost'];
   private allLinks = new Set<string>();
   private processedLinks = new Set<string>();
-  private readonly batchSize = 10;
+  private readonly batchSize = 3;
+  private readonly categoryFilters = {
+    avto: [
+      { name: 'Год выпуска', key: 'year', type: 'number' },
+      { name: 'Пробег', key: 'mileage', type: 'number' },
+    ],
+    nedvizhimost: [
+      {
+        name: 'Тип жилья',
+        key: 'propertyType',
+        type: 'select',
+      },
+      { name: 'Площадь', key: 'area', type: 'number' },
+      { name: 'Этаж', key: 'floor', type: 'number' },
+    ],
+  };
 
   constructor(
     private prisma: PrismaService,
@@ -61,17 +76,26 @@ export class ProductService {
     });
   }
 
-  async findByFilter(priceFrom?: number, priceTo?: number, city?: string) {
+  async findByFilter(
+    priceFrom?: number | string,
+    priceTo?: number | string,
+    city?: string,
+  ) {
+    const priceFromNum =
+      priceFrom !== undefined ? Number(priceFrom) : undefined;
+    const priceToNum = priceTo !== undefined ? Number(priceTo) : undefined;
+
     return this.prisma.product.findMany({
       where: {
         price: {
-          gte: priceFrom || undefined,
-          lte: priceTo || undefined,
+          ...(priceFromNum !== undefined && !isNaN(priceFromNum)
+            ? { gte: priceFromNum }
+            : {}),
+          ...(priceToNum !== undefined && !isNaN(priceToNum)
+            ? { lte: priceToNum }
+            : {}),
         },
-        city: {
-          equals: city,
-          mode: 'insensitive',
-        },
+        ...(city ? { city: { equals: city, mode: 'insensitive' } } : {}),
       },
     });
   }
@@ -87,6 +111,10 @@ export class ProductService {
     });
   }
 
+  getCategoryFilters(category: string) {
+    return this.categoryFilters[category] || [];
+  }
+
   /**
    * Получает все ссылки, затем подключается ИИ и так каждые 5 минут
    */
@@ -95,9 +123,22 @@ export class ProductService {
     setInterval(() => this.updateLinksAndProcessBatch(), 4 * 60 * 1000);
   }
 
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
   private async updateLinksAndProcessBatch() {
     try {
       await this.fetchAllCategoryLinks();
+
+      const shuffled = this.shuffleArray(Array.from(this.allLinks));
+      this.allLinks = new Set(shuffled);
+
       await this.processNextBatch();
     } catch (error) {
       this.logger.error(
@@ -183,16 +224,34 @@ export class ProductService {
       (link) => !this.processedLinks.has(link),
     );
     const batch = unprocessed.slice(0, this.batchSize);
+    const groupSize = 3;
 
-    for (const link of batch) {
+    for (let i = 0; i < batch.length; i += groupSize) {
+      const group = batch.slice(i, i + groupSize);
+      const htmlBlocks: { html: string; url: string }[] = [];
+
+      for (const link of group) {
+        try {
+          const html = await this.fetchAdPage(link);
+          htmlBlocks.push({ html, url: link });
+        } catch (err) {
+          this.logger.warn(`Ошибка при получении HTML ${link}: ${err.message}`);
+          this.processedLinks.add(link);
+        }
+      }
+
+      if (htmlBlocks.length === 0) continue;
+
       try {
-        const html = await this.fetchAdPage(link);
-        const product = await this.extractProductFromHtml(html);
-        await this.saveOrUpdateProduct(product);
-        this.processedLinks.add(link);
+        const products = await this.extractProductsFromMultipleHtml(htmlBlocks);
+        for (let j = 0; j < products.length; j++) {
+          const product = products[j];
+          await this.saveOrUpdateProduct(product);
+          this.processedLinks.add(group[j]);
+        }
       } catch (err) {
         this.logger.warn(
-          `Ошибка при обработке объявления ${link}: ${err.message}`,
+          'Ошибка парсинга JSON от ИИ (групповой): ' + err.message,
         );
       }
     }
@@ -215,9 +274,16 @@ export class ProductService {
   /**
    * Извлекает данные продукта из HTML-страницы с помощью ИИ.
    */
-  async extractProductFromHtml(html: string) {
-    const $ = cheerio.load(html);
-    const cleanedHtml = $('body').html()?.replace(/\s+/g, ' ').trim() || '';
+  async extractProductsFromMultipleHtml(
+    htmlBlocks: { html: string; url: string }[],
+  ) {
+    const htmlList = htmlBlocks
+      .map((block, i) => {
+        const $ = cheerio.load(block.html);
+        const cleaned = $('body').html()?.replace(/\s+/g, ' ').trim() || '';
+        return `Объявление ${i + 1} (${block.url}):\n${cleaned}`;
+      })
+      .join('\n\n');
 
     const prompt = `
 Ты — парсер объявлений с сайта https://berkat.ru.
@@ -238,27 +304,20 @@ export class ProductService {
 Ответь только валидным JSON, без пояснений, текста и markdown.
 
 Вот HTML объявления:
-${cleanedHtml}
+${htmlList}
     `;
 
     const aiResponse = await this.togetherAI.chat(prompt);
 
-    this.logger.debug('Ответ от ИИ:', aiResponse);
-
-    const match = aiResponse.match(/```json\s*([\s\S]*?)\s*```/);
-    let jsonContent = match?.[1]?.trim();
-
-    if (!jsonContent) {
-      JSON.parse(aiResponse);
-      jsonContent = aiResponse.trim();
-    }
-
     try {
-      const product = JSON.parse(jsonContent);
-      return product;
+      const jsonStart = aiResponse.indexOf('[');
+      const jsonEnd = aiResponse.lastIndexOf(']');
+      const jsonText = aiResponse.slice(jsonStart, jsonEnd + 1);
+      const products = JSON.parse(jsonText);
+      return products;
     } catch (err) {
-      this.logger.warn('Ошибка при парсинге JSON от ИИ:', jsonContent);
-      throw new Error('Неверный JSON от ИИ');
+      this.logger.warn('Ошибка при парсинге JSON массива от ИИ');
+      throw new Error('Невалидный JSON от ИИ (массив)');
     }
   }
 
