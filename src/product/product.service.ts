@@ -12,21 +12,6 @@ export class ProductService {
   private allLinks = new Set<string>();
   private processedLinks = new Set<string>();
   private readonly batchSize = 3;
-  private readonly categoryFilters = {
-    avto: [
-      { name: 'Год выпуска', key: 'year', type: 'number' },
-      { name: 'Пробег', key: 'mileage', type: 'number' },
-    ],
-    nedvizhimost: [
-      {
-        name: 'Тип жилья',
-        key: 'propertyType',
-        type: 'select',
-      },
-      { name: 'Площадь', key: 'area', type: 'number' },
-      { name: 'Этаж', key: 'floor', type: 'number' },
-    ],
-  };
 
   constructor(
     private prisma: PrismaService,
@@ -109,10 +94,6 @@ export class ProductService {
         [sortBy]: sort,
       },
     });
-  }
-
-  getCategoryFilters(category: string) {
-    return this.categoryFilters[category] || [];
   }
 
   /**

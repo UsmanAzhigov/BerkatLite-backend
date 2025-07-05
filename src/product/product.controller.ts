@@ -40,11 +40,6 @@ export class ProductController {
     return this.productService.searchProducts(query);
   }
 
-  @Get('categoryFilters')
-  @ApiQuery({ name: 'category', type: String })
-  getCategoryFilters(@Query('category') category: string) {
-    return this.productService.getCategoryFilters(category);
-  }
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.productService.findOne(id);
