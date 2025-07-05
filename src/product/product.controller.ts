@@ -8,8 +8,18 @@ export class ProductController {
 
   @Get()
   @ApiQuery({ name: 'category', type: String, required: false })
-  findAll(@Query('category') category?: string) {
-    return this.productService.findAll(category);
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'take', type: Number, required: false })
+  findAll(
+    @Query('page') page?: string,
+    @Query('take') take?: string,
+    @Query('category') category?: string,
+  ) {
+    return this.productService.findAll(
+      category,
+      Number(page || 1),
+      take || '10',
+    );
   }
 
   @Get('filter')

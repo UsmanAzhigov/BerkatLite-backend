@@ -33,5 +33,5 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsObject()
-  properties?: Record<string, any>;
+  properties?: Record<string, string>;
 }

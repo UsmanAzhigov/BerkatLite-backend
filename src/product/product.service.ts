@@ -4,6 +4,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { TogetherAIService } from '../together/togetherai.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { Prisma } from 'generated/prisma';
 
 @Injectable()
 export class ProductService {
@@ -18,17 +19,38 @@ export class ProductService {
     private togetherAI: TogetherAIService,
   ) {}
 
-  async findAll(category?: string) {
-    return this.prisma.product.findMany({
-      where: category
-        ? {
-            category: {
-              equals: category,
-              mode: 'insensitive',
-            },
-          }
-        : {},
-    });
+  async findAll(category?: string, page = 1, take = '10') {
+    const takeNumber = parseInt(take, 10);
+    const skip = (page - 1) * takeNumber;
+
+    const where = category
+      ? {
+          category: {
+            equals: category,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        }
+      : {};
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        where,
+        skip,
+        take: takeNumber,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        take: takeNumber,
+        totalPages: Math.ceil(total / takeNumber),
+      },
+    };
   }
 
   async findOne(id: string) {
