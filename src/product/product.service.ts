@@ -19,25 +19,48 @@ export class ProductService {
     private togetherAI: TogetherAIService,
   ) {}
 
-  async findAll(category?: string, page = 1, take = '10') {
-    const takeNumber = parseInt(take, 10);
+  async findAll(params: {
+    category?: string;
+    page?: number;
+    take?: number | string;
+    search?: string;
+    sortBy?: 'price' | 'createdAt' | 'popular';
+    sortOrder?: 'asc' | 'desc';
+    priceFrom?: number;
+    priceTo?: number;
+    city?: string;
+  }) {
+    const {
+      category,
+      page = 1,
+      take = 10,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'asc',
+      priceFrom,
+      priceTo,
+      city,
+    } = params;
+
+    const takeNumber = parseInt(take as string, 10);
     const skip = (page - 1) * takeNumber;
 
-    const where = category
-      ? {
-          category: {
-            equals: category,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        }
-      : {};
+    const where: Prisma.ProductWhereInput = {
+      ...(category && { category: { equals: category, mode: 'insensitive' } }),
+      ...(search && { title: { contains: search, mode: 'insensitive' } }),
+      ...(city && { city: { equals: city, mode: 'insensitive' } }),
+      price: {
+        ...(priceFrom !== undefined ? { gte: Number(priceFrom) } : {}),
+        ...(priceTo !== undefined ? { lte: Number(priceTo) } : {}),
+      },
+    };
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.product.findMany({
         where,
         skip,
         take: takeNumber,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [sortBy]: sortOrder },
       }),
       this.prisma.product.count({ where }),
     ]);
@@ -54,67 +77,12 @@ export class ProductService {
   }
 
   async findOne(id: string) {
-    const product = await this.prisma.product.findUnique({
+    const product = await this.prisma.product.findUnique({ where: { id } });
+    if (!product) throw new Error(`Product with ID ${id} not found`);
+
+    return this.prisma.product.update({
       where: { id },
-    });
-
-    if (!product) {
-      throw new Error(`Product with ID ${id} not found`);
-    }
-
-    const updated = await this.prisma.product.update({
-      where: { id },
-      data: {
-        popular: { increment: 1 },
-      },
-    });
-
-    return updated;
-  }
-
-  async searchProducts(query: string) {
-    return this.prisma.product.findMany({
-      where: {
-        title: {
-          contains: query,
-          mode: 'insensitive',
-        },
-      },
-    });
-  }
-
-  async findByFilter(
-    priceFrom?: number | string,
-    priceTo?: number | string,
-    city?: string,
-  ) {
-    const priceFromNum =
-      priceFrom !== undefined ? Number(priceFrom) : undefined;
-    const priceToNum = priceTo !== undefined ? Number(priceTo) : undefined;
-
-    return this.prisma.product.findMany({
-      where: {
-        price: {
-          ...(priceFromNum !== undefined && !isNaN(priceFromNum)
-            ? { gte: priceFromNum }
-            : {}),
-          ...(priceToNum !== undefined && !isNaN(priceToNum)
-            ? { lte: priceToNum }
-            : {}),
-        },
-        ...(city ? { city: { equals: city, mode: 'insensitive' } } : {}),
-      },
-    });
-  }
-
-  async findBySort(
-    sort: 'asc' | 'desc',
-    sortBy: 'price' | 'createdAt' | 'popular',
-  ) {
-    return this.prisma.product.findMany({
-      orderBy: {
-        [sortBy]: sort,
-      },
+      data: { popular: { increment: 1 } },
     });
   }
 
@@ -123,7 +91,13 @@ export class ProductService {
    */
   async onModuleInit() {
     await this.updateLinksAndProcessBatch();
-    setInterval(() => this.updateLinksAndProcessBatch(), 4 * 60 * 1000);
+    setInterval(
+      () => {
+        this.updateLinksAndProcessBatch();
+        this.processNextBatch();
+      },
+      60 * 60 * 1000,
+    );
   }
 
   private shuffleArray<T>(array: T[]): T[] {
@@ -141,8 +115,6 @@ export class ProductService {
 
       const shuffled = this.shuffleArray(Array.from(this.allLinks));
       this.allLinks = new Set(shuffled);
-
-      await this.processNextBatch();
     } catch (error) {
       this.logger.error(
         'Ошибка при обновлении ссылок и обработке батча',
