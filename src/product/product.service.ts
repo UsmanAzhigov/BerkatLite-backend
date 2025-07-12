@@ -252,7 +252,6 @@ export class ProductService {
   async generateTitleAndDescription(data: {
     title: string;
     description: string;
-    properties: { name: string; text: string }[];
   }) {
     const prompt = `Сгенерируй новый заголовок и описание, коротко и ясно title: ${data.title}, description: ${data.description}`;
 
@@ -301,7 +300,6 @@ export class ProductService {
         const ai = await this.generateTitleAndDescription({
           title: data.title,
           description: data.description,
-          properties: data.properties,
         });
 
         const existing = await this.prisma.product.findFirst({
