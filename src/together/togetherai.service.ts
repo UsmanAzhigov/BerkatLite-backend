@@ -16,7 +16,7 @@ export class TogetherAIService {
       const response = await axios.post(
         this.apiUrl,
         {
-          model: 'deepseek-ai/DeepSeek-V3',
+          model: 'meta-llama/Llama-3.2-3B-Instruct-Turbo',
           messages: [{ role: 'user', content: prompt }],
         },
         {

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Product" ALTER COLUMN "createdAt" DROP DEFAULT,
+ALTER COLUMN "createdAt" SET DATA TYPE TEXT;

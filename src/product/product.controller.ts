@@ -1,5 +1,4 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiQuery } from '@nestjs/swagger';
 import { ProductService } from './product.service';
 
 @Controller('products')
@@ -9,6 +8,13 @@ export class ProductController {
   @Get()
   async getAll(@Query() query) {
     return this.productService.findAll(query);
+  }
+
+  @Get('product')
+  async getProduct() {
+    return this.productService.parsePage(
+      'https://berkat.ru/6098297-ustanovka-gbo-g-sunzha-rassrochka-bez-pervogo-vznosa.html',
+    );
   }
 
   @Get(':id')

@@ -17,9 +17,9 @@ model Product {
   category    String
   popular     Int      @default(0)
   city        String
-  phone       String[]
+  phone       String
   properties  Json?
   updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
+  createdAt   String
 }
 
