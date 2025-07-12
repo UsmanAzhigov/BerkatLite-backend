@@ -1,9 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { TogetherAIService } from '../together/togetherai.service';
-import { CreateProductDto } from './dto/create-product.dto';
 import { Prisma } from 'generated/prisma';
 import { Cron } from '@nestjs/schedule';
 
