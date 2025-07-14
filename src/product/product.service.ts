@@ -44,16 +44,15 @@ export class ProductService {
 
     const takeNumber = parseInt(take as string, 10);
     const skip = (page - 1) * takeNumber;
-
     const where: Prisma.ProductWhereInput = {
-      ...(category && { category: { equals: category, mode: 'insensitive' } }),
+      ...(category && { category: { equals: category } }),
       ...(search && {
         title: {
           contains: search,
           mode: 'insensitive',
         },
       }),
-      ...(city && { city: { equals: city } }),
+      ...(city && { city: { equals: city, mode: 'insensitive' } }),
       price: {
         ...(priceFrom !== undefined ? { gte: Number(priceFrom) } : {}),
         ...(priceTo !== undefined ? { lte: Number(priceTo) } : {}),
