@@ -47,8 +47,13 @@ export class ProductService {
 
     const where: Prisma.ProductWhereInput = {
       ...(category && { category: { equals: category, mode: 'insensitive' } }),
-      ...(search && { title: { contains: search, mode: 'insensitive' } }),
-      ...(city && { city: { equals: city, mode: 'insensitive' } }),
+      ...(search && {
+        title: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      }),
+      ...(city && { city: { equals: city } }),
       price: {
         ...(priceFrom !== undefined ? { gte: Number(priceFrom) } : {}),
         ...(priceTo !== undefined ? { lte: Number(priceTo) } : {}),
@@ -264,7 +269,7 @@ export class ProductService {
     }
   }
 
-  @Cron('*/60 * * * * ')
+  @Cron('*/60 * * * *')
   async processBatch() {
     const freshLinks: string[] = [];
     for (const url of this.categories) {
