@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import { TogetherPrompt } from 'src/@types/together.types';
+import { Together } from 'together-ai';
+
+const together = new Together({
+  apiKey: process.env.TOGETHER_API_KEY || '',
+});
 
 @Injectable()
 export class TogetherAIService {
@@ -11,33 +16,26 @@ export class TogetherAIService {
     this.apiKey = this.configService.get<string>('TOGETHER_API_KEY') || '';
   }
 
-  async chat(prompt: string) {
+  async getCompletions(messages: TogetherPrompt[], jsonSchema: any) {
     try {
-      const response = await axios.post(
-        this.apiUrl,
-        {
-          model: 'meta-llama/Llama-3.2-3B-Instruct-Turbo',
-          messages: [{ role: 'user', content: prompt }],
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      );
+      const response = await together.chat.completions.create({
+        response_format: { type: 'json_object', schema: jsonSchema },
+        messages: messages,
+        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+      });
 
-      console.log(
-        'Ответ от Together AI:',
-        response.data.choices?.[0]?.message?.content || response.data,
-      );
+      const content = response.choices[0].message?.content;
 
-      const message =
-        response.data.choices?.[0]?.message?.content ?? 'Нет ответа';
-      return message;
+      if (!content) {
+        throw new Error('No content');
+      }
+
+      const result = JSON.parse(content);
+
+      return result;
     } catch (error) {
-      console.error('Together AI error:', error.response?.data || error);
-      return 'Ошибка при обращении к Together AI';
+      console.error('Ошибка Together AI:', error);
+      return null;
     }
   }
 }

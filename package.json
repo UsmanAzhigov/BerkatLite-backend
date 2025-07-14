@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "prisma:push": "prisma db push"
   },
   "dependencies": {
     "@google/genai": "^1.7.0",
@@ -44,7 +45,9 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "together-ai": "^0.16.0",
-    "undici": "^7.11.0"
+    "undici": "^7.11.0",
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

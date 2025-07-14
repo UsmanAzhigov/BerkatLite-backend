@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { PrismaModule } from './prisma/prisma.module';
 import { ProductModule } from './product/product.module';
 import { ConfigModule } from '@nestjs/config';
 import { TogetherAIModule } from './together/togetherai.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ParserService } from './parser.service';
+import { PrismaService } from './prisma.service';
+import { GenerateService } from './generate.service';
 
 @Module({
   imports: [
@@ -13,12 +15,11 @@ import { ScheduleModule } from '@nestjs/schedule';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    PrismaModule,
     ProductModule,
     TogetherAIModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ParserService, PrismaService, GenerateService],
 })
 export class AppModule {}

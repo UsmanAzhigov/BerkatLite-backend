@@ -8,18 +8,44 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  products    Product[]
+}
+
+model City {
+  id          String   @id @default(uuid())
+  name        String
+  products    Product[]
+}
+
 model Product {
   id          String   @id @default(uuid())
+
   title       String   
   description String
   price       Int
-  images      String[]
-  category    String
-  popular     Int      @default(0)
-  city        String
   phone       String
+  images      String[]
   properties  Json?
+
+  views     Int      @default(0)
+
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  cityId      String
+  city        City     @relation(fields: [cityId], references: [id])
+  
+  sourceUrl   String
+
   updatedAt   DateTime @updatedAt
   createdAt   String
 }
 
+model QueueLink {
+  id          String   @id @default(uuid())
+  link        String   @unique
+  createdAt   DateTime @default(now())
+}
