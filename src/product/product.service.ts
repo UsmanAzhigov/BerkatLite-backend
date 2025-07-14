@@ -194,12 +194,6 @@ export class ProductService {
 
   async parseGetLinks(link: string, categoryName: 'avto' | 'nedvizhimost') {
     const rawLinks: string[] = [];
-
-    async function fetchPage(url: string) {
-      const data = await this.fetchWithRetry(url);
-      return data;
-    }
-
     try {
       const data = await this.fetchWithRetry(link);
 
@@ -339,10 +333,6 @@ export class ProductService {
             data: productPayload,
           });
         }
-
-        console.log(
-          `[Cron] Обработана ссылка: ${link} в ${new Date().toISOString()}`,
-        );
 
         this.processedLinks.add(link);
       } catch (err) {
