@@ -10,13 +10,13 @@ datasource db {
 
 model Category {
   id          String   @id @default(uuid())
-  name        String
+  name        String   @unique
   products    Product[]
 }
 
 model City {
   id          String   @id @default(uuid())
-  name        String
+  name        String   @unique
   products    Product[]
 }
 
@@ -38,7 +38,7 @@ model Product {
   cityId      String
   city        City     @relation(fields: [cityId], references: [id])
   
-  sourceUrl   String
+  sourceUrl   String   @unique
 
   updatedAt   DateTime @updatedAt
   createdAt   String

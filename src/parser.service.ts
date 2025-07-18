@@ -2,10 +2,13 @@ import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { AdvertDetails, AdvertProperty } from './@types/product.types';
+import { PrismaService } from './prisma.service';
 
 @Injectable()
 export class ParserService {
   private doc: cheerio.CheerioAPI;
+
+  constructor(private readonly prisma: PrismaService) {}
 
   public setDoc(doc: cheerio.CheerioAPI) {
     this.doc = doc;
@@ -15,7 +18,8 @@ export class ParserService {
     return this.doc('h1')
       .text()
       .replace(/\t|\n/g, '')
-      .split('Поднять в списке')[1];
+      .split('Поднять в списке')[1]
+      ?.trim();
   }
 
   private getImages(): string[] {
@@ -46,19 +50,14 @@ export class ParserService {
       .text()
       .replace(/\s/g, '');
 
-    const price = priceText ? Number(priceText.replace(/[^\d]/g, '')) : null;
-
-    return price;
+    return priceText ? Number(priceText.replace(/[^\d]/g, '')) : null;
   }
 
   private getViews(): number {
-    return Number(
-      this.doc('.board_item_hits').text().replace('Просмотры: ', ''),
+    return (
+      Number(this.doc('.board_item_hits').text().replace('Просмотры: ', '')) ||
+      0
     );
-  }
-
-  private getCity(): string | null {
-    return this.doc('.board_item_city').text().trim() || null;
   }
 
   private getCreatedAt(): string {
@@ -67,6 +66,14 @@ export class ParserService {
 
   private getDescription(): string {
     return this.doc('.board_item_desc').text().trim().split('\t\t\t')[0];
+  }
+
+  private getCategoryName(): string {
+    return this.doc('#breadcrumbs [itemprop="title"]').first().text().trim();
+  }
+
+  private getCityName(): string {
+    return this.doc('.board_item_city').text().trim();
   }
 
   private getProperties(): AdvertProperty[] {
@@ -86,20 +93,61 @@ export class ParserService {
 
   public async getDocument(url: string): Promise<cheerio.CheerioAPI> {
     const response = await axios.get(url);
-
     return cheerio.load(response.data);
   }
 
-  public getDetailsFromDoc(): AdvertDetails {
+  public async getLinks(url: string): Promise<string[]> {
+    const $ = await this.getDocument(url);
+    const items = $('.board_list_item');
+    const links: string[] = [];
+
+    items.each((_, el) => {
+      const isReklama = $(el).find('.board_actions_link_admin_top').length > 0;
+
+      if (!isReklama) {
+        const href = $(el).find('.board_list_item_title a').attr('href');
+        if (href) {
+          links.push(`https://berkat.ru${href}`);
+        }
+      }
+    });
+
+    return links;
+  }
+
+  public async getOneAdvertDetails(url: string): Promise<AdvertDetails> {
+    const doc = await this.getDocument(url);
+    this.setDoc(doc);
+
     const title = this.getTitle();
     const description = this.getDescription();
     const images = this.getImages();
     const phone = this.getPhone();
     const price = this.getPrice();
     const views = this.getViews();
-    const city = this.getCity();
     const createdAt = this.getCreatedAt();
     const properties = this.getProperties();
+    const sourceUrl = url;
+
+    const cityName = this.getCityName();
+    if (!cityName) throw new Error('City name not found');
+
+    let city = await this.prisma.city.findUnique({ where: { name: cityName } });
+    if (!city) {
+      city = await this.prisma.city.create({ data: { name: cityName } });
+    }
+
+    const categoryName = this.getCategoryName();
+    if (!categoryName) throw new Error('Category name not found');
+
+    let category = await this.prisma.category.findUnique({
+      where: { name: categoryName },
+    });
+    if (!category) {
+      category = await this.prisma.category.create({
+        data: { name: categoryName },
+      });
+    }
 
     return {
       title,
@@ -108,49 +156,23 @@ export class ParserService {
       phone,
       price,
       views,
-      city,
       createdAt,
+      cityId: city.id,
+      categoryId: category.id,
+      sourceUrl,
       properties,
     };
   }
 
-  public async getLinks(url: string) {
-    const $ = await this.getDocument(url);
-
-    const items = $('.board_list_item');
-
-    const links: string[] = [];
-
-    items.each((_, el) => {
-      const isReklama = $(el).find('.board_actions_link_admin_top').length > 0;
-
-      if (!isReklama) {
-        const url = $(el).find('.board_list_item_title a').attr('href');
-
-        if (url) {
-          links.push(`https://berkat.ru${url}`);
-        }
-      }
-    });
-
-    return links;
-  }
-
-  public async getOneAdvertDetails(url: string) {
-    const doc = await this.getDocument(url);
-
-    this.setDoc(doc);
-
-    const details = this.getDetailsFromDoc();
-
-    return details;
-  }
-
-  public async getLastAdvertUrl(): Promise<string> {
+  public async getLastAdvertAutoUrl(): Promise<string> {
     const links = await this.getLinks(
       'https://berkat.ru/avto/legkovye-avtomobili',
     );
+    return links[0];
+  }
 
+  public async getLastAdvertRealtyUrl(): Promise<string> {
+    const links = await this.getLinks('https://berkat.ru/nedvizhimost');
     return links[0];
   }
 }

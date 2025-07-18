@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { TogetherAIService } from './together/togetherai.service';
-import { AdvertDetails } from './@types/product.types';
+import { AdvertDetails, AdvertProperty } from './@types/product.types';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 const advertSchema = z.object({
   title: z.string().describe('Заголовок'),
-  price: z.string().describe('Цена'),
+  price: z.number().describe('Цена'),
   phone: z.string().describe('Телефон продавца'),
   description: z.string().describe('Отформатированное описание'),
   is_hren: z
@@ -20,7 +20,7 @@ const jsonSchema = zodToJsonSchema(advertSchema, { target: 'openAi' });
 
 type Advert = z.infer<typeof advertSchema>;
 
-function convertPropertiesToStr(obj: Record<string, any>): string {
+function convertPropertiesToStr(obj: AdvertProperty[]): string {
   return Object.entries(obj)
     .map(([key, value]) => `${key}:${value};`)
     .join('');
@@ -33,10 +33,10 @@ export class GenerateService {
   async generateAdvert(details: AdvertDetails): Promise<Advert> {
     const detailsStr = `
     <title>${details.title}</title>
-    <description>${details.description}</description>
     <price>${details.price}</price>
     <phone>${details.phone}</phone>
     <details>${convertPropertiesToStr(details.properties)}</details>
+    <description>${details.description}</description>
     `;
 
     const result = await this.togetherAIService.getCompletions(
@@ -60,7 +60,16 @@ description: Отформатированное описание объявле�
       ],
       jsonSchema,
     );
+    const finalAdvert: Advert = {
+      ...result,
+      cityId: details.cityId,
+      categoryId: details.categoryId,
+      sourceUrl: details.sourceUrl,
+      images: details.images,
+      views: details.views,
+      createdAt: details.createdAt,
+    };
 
-    return result;
+    return finalAdvert;
   }
 }
