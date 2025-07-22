@@ -3,6 +3,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { AdvertDetails, AdvertProperty } from './@types/product.types';
 import { PrismaService } from './prisma.service';
+import { uploader } from './utils/uploader';
 
 @Injectable()
 export class ParserService {
@@ -14,15 +15,7 @@ export class ParserService {
     this.doc = doc;
   }
 
-  private getTitle(): string {
-    return this.doc('h1')
-      .text()
-      .replace(/\t|\n/g, '')
-      .split('Поднять в списке')[1]
-      ?.trim();
-  }
-
-  private getImages(): string[] {
+  private async getImages(): Promise<string[]> {
     const images: string[] = [];
 
     this.doc('.fotorama img').each((_, el) => {
@@ -119,18 +112,18 @@ export class ParserService {
     const doc = await this.getDocument(url);
     this.setDoc(doc);
 
-    const title = this.getTitle();
     const description = this.getDescription();
-    const images = this.getImages();
+    const images = await this.getImages();
+    const localImages: string[] = [];
     const phone = this.getPhone();
     const price = this.getPrice();
     const views = this.getViews();
     const createdAt = this.getCreatedAt();
     const properties = this.getProperties();
     const sourceUrl = url;
-
     const cityName = this.getCityName();
-    if (!cityName) throw new Error('City name not found');
+
+    if (!cityName) throw new Error('Не удалось найти город');
 
     let city = await this.prisma.city.findUnique({ where: { name: cityName } });
     if (!city) {
@@ -138,21 +131,30 @@ export class ParserService {
     }
 
     const categoryName = this.getCategoryName();
-    if (!categoryName) throw new Error('Category name not found');
+    if (!categoryName) throw new Error('Не удалось найти категорию');
 
     let category = await this.prisma.category.findUnique({
       where: { name: categoryName },
     });
+
     if (!category) {
       category = await this.prisma.category.create({
         data: { name: categoryName },
       });
     }
 
+    for (const imageUrl of images) {
+      try {
+        const localPath = await uploader(imageUrl, 'uploads');
+        localImages.push(`http://localhost:4444${localPath}`);
+      } catch (err) {
+        console.error(`Не удалось скачать ${imageUrl}:`, err.message);
+      }
+    }
+
     return {
-      title,
       description,
-      images,
+      images: localImages,
       phone,
       price,
       views,

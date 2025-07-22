@@ -17,7 +17,6 @@ CREATE TABLE "City" (
 -- CreateTable
 CREATE TABLE "Product" (
     "id" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "price" INTEGER NOT NULL,
     "phone" TEXT NOT NULL,
@@ -41,6 +40,15 @@ CREATE TABLE "QueueLink" (
 
     CONSTRAINT "QueueLink_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Category_name_key" ON "Category"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "City_name_key" ON "City"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Product_sourceUrl_key" ON "Product"("sourceUrl");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "QueueLink_link_key" ON "QueueLink"("link");

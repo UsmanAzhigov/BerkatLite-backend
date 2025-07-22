@@ -41,7 +41,6 @@ export interface AdvertTransactionProps {
 }
 
 export interface AdvertDetails {
-  title: string;
   description: string;
   images: string[];
   phone: string | null;

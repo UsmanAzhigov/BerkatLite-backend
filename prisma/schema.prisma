@@ -23,7 +23,6 @@ model City {
 model Product {
   id          String   @id @default(uuid())
 
-  title       String   
   description String
   price       Int
   phone       String

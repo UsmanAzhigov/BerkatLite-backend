@@ -35,8 +35,6 @@ export class AppController {
   async getAdvert() {
     const advert = await this.appService.parseLastAdvert();
 
-    console.log(advert);
-
     if (!advert) {
       return {
         error: 'Нет объявления',

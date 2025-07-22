@@ -37,8 +37,6 @@ export class AppService {
           link,
         },
       });
-
-      console.log(link);
     } catch (_) {
       console.log('[Транспорт] Объявление уже существует');
     }
@@ -54,8 +52,6 @@ export class AppService {
           link,
         },
       });
-
-      console.log(link);
     } catch (_) {
       console.log('[Недвижимость] Объявление уже существует');
     }
@@ -76,7 +72,7 @@ export class AppService {
 
     try {
       const details = await this.parserService.getOneAdvertDetails(link.link);
-      const product = await this.productService.createProduct(details);
+      await this.productService.createProduct(details);
 
       await this.prisma.queueLink.delete({ where: { id: link.id } });
     } catch (error) {
