@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { Injectable } from '@nestjs/common';
 import { ParserService } from './parser.service';
 import { PrismaService } from './prisma.service';
 import {
@@ -8,6 +8,7 @@ import {
   PaginationMeta,
 } from './@types/product.types';
 import { ProductService } from './product.service';
+import { GenerateService } from './generate.service';
 
 @Injectable()
 export class AppService {
@@ -15,6 +16,7 @@ export class AppService {
     private readonly parserService: ParserService,
     private readonly prisma: PrismaService,
     private readonly productService: ProductService,
+    private readonly generateService: GenerateService,
   ) {}
 
   getAll(
@@ -57,12 +59,10 @@ export class AppService {
     }
   }
 
-  @Cron('*/1 * * * *')
+  @Cron('1 * * * *')
   async parseLastAdvert(): Promise<AdvertDetails | undefined> {
     const link = await this.prisma.queueLink.findFirst({
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!link) {
@@ -72,15 +72,20 @@ export class AppService {
 
     try {
       const details = await this.parserService.getOneAdvertDetails(link.link);
-      await this.productService.createProduct(details);
 
       await this.prisma.queueLink.delete({ where: { id: link.id } });
+
+      const generated = await this.generateService.generateAdvert(details);
+
+      if (!generated) {
+        console.log('Объявление отклонено ИИ');
+        return;
+      }
+
+      await this.productService.createProduct(generated);
     } catch (error) {
-      console.error('Ошибка при создании объявления:', error.message);
-
+      console.error('Ошибка при обработке объявления:', error.message);
       await this.prisma.queueLink.delete({ where: { id: link.id } });
-
-      return;
     }
   }
 }

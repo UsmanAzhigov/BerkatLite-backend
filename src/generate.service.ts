@@ -8,10 +8,10 @@ const advertSchema = z.object({
   price: z.number().describe('Цена'),
   phone: z.string().describe('Телефон продавца'),
   description: z.string().describe('Отформатированное описание'),
-  is_normal: z
+  is_bad_ad: z
     .boolean()
     .describe(
-      'Если это рекламное объявление о предоставлении услуг, реклама и т.п., то true. Если это нормальное объявление о покупке, продаже, обмене и т.п., то false (значит ок и оно полезное)',
+      'Если это рекламное объявление о предоставлении услуг, реклама и т.п., то true. Если это нормальное объявление о продаже, обмене и т.п., то false (значит ок и оно полезное)',
     ),
 });
 
@@ -29,7 +29,22 @@ function convertPropertiesToStr(obj: AdvertProperty[]): string {
 export class GenerateService {
   constructor(private readonly togetherAIService: TogetherAIService) {}
 
-  async generateAdvert(details: AdvertDetails): Promise<Advert> {
+  async generateAdvert(details: AdvertDetails): Promise<AdvertDetails | null> {
+    const badDealTypes = ['куплю', 'ищу', 'сниму'];
+    const dealTypeProperty = details.properties.find(
+      (p) => p.name.toLowerCase() === 'тип сделки',
+    );
+
+    if (
+      dealTypeProperty &&
+      badDealTypes.some((kw) =>
+        dealTypeProperty.text.toLowerCase().includes(kw),
+      )
+    ) {
+      console.log('[Отклонено] Тип сделки не подходит:', dealTypeProperty.text);
+      return null;
+    }
+
     const detailsStr = `
     <price>${details.price}</price>
     <phone>${details.phone}</phone>
@@ -58,14 +73,21 @@ description: Отформатированное описание объявле�
       jsonSchema,
     );
 
-    const finalAdvert: Advert = {
-      ...result,
+    if (result.is_bad_ad) {
+      return null;
+    }
+
+    const { is_bad_ad, ...rest } = result;
+
+    const finalAdvert: AdvertDetails = {
+      ...rest,
       cityId: details.cityId,
       categoryId: details.categoryId,
       sourceUrl: details.sourceUrl,
       images: details.images,
       views: details.views,
       createdAt: details.createdAt,
+      properties: details.properties,
     };
 
     return finalAdvert;

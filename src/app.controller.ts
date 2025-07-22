@@ -3,12 +3,13 @@ import { AppService } from './app.service';
 import { GenerateService } from './generate.service';
 import { AdvertDetails } from './@types/product.types';
 import { PrismaService } from './prisma.service';
+import { Cron } from '@nestjs/schedule';
+import { ProductService } from './product.service';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    private readonly generateService: GenerateService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -33,17 +34,7 @@ export class AppController {
 
   @Get('advert')
   async getAdvert() {
-    const advert = await this.appService.parseLastAdvert();
-
-    if (!advert) {
-      return {
-        error: 'Нет объявления',
-      };
-    }
-
-    const generatedAdvert = await this.generateService.generateAdvert(advert);
-
-    return generatedAdvert;
+    await this.appService.parseLastAdvert();
   }
 
   @Get('cities')

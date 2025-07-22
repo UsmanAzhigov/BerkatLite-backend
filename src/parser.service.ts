@@ -122,6 +122,7 @@ export class ParserService {
     const properties = this.getProperties();
     const sourceUrl = url;
     const cityName = this.getCityName();
+    const categoryName = this.getCategoryName();
 
     if (!cityName) throw new Error('Не удалось найти город');
 
@@ -130,7 +131,6 @@ export class ParserService {
       city = await this.prisma.city.create({ data: { name: cityName } });
     }
 
-    const categoryName = this.getCategoryName();
     if (!categoryName) throw new Error('Не удалось найти категорию');
 
     let category = await this.prisma.category.findUnique({
@@ -143,9 +143,10 @@ export class ParserService {
       });
     }
 
-    for (const imageUrl of images) {
+    for (let i = 0; i < images.length; i++) {
+      const imageUrl = images[i];
       try {
-        const localPath = await uploader(imageUrl, 'uploads');
+        const localPath = await uploader(imageUrl, 'uploads', i);
         localImages.push(`http://localhost:4444${localPath}`);
       } catch (err) {
         console.error(`Не удалось скачать ${imageUrl}:`, err.message);
