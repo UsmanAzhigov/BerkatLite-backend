@@ -30,20 +30,15 @@ export class GenerateService {
   constructor(private readonly togetherAIService: TogetherAIService) {}
 
   async generateAdvert(details: AdvertDetails): Promise<AdvertDetails | null> {
-    const badDealTypes = ['куплю', 'ищу', 'сниму'];
-    const dealTypeProperty = details.properties.find(
-      (p) => p.name.toLowerCase() === 'тип сделки',
+    const dealType = details.properties.find(
+      (prop) =>
+        prop.name.toLowerCase() === 'тип сделки' &&
+        ['куплю', 'ищу', 'сниму'].some((keyword) =>
+          prop.text.toLowerCase().includes(keyword),
+        ),
     );
 
-    if (
-      dealTypeProperty &&
-      badDealTypes.some((kw) =>
-        dealTypeProperty.text.toLowerCase().includes(kw),
-      )
-    ) {
-      console.log('[Отклонено] Тип сделки не подходит:', dealTypeProperty.text);
-      return null;
-    }
+    if (dealType) return null;
 
     const detailsStr = `
     <price>${details.price}</price>
