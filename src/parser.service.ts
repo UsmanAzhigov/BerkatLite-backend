@@ -15,6 +15,13 @@ export class ParserService {
     this.doc = doc;
   }
 
+  private getTitle(): string {
+    return this.doc('h1')
+      .text()
+      .replace(/\t|\n/g, '')
+      .split('Поднять в списке')[1];
+  }
+
   private async getImages(): Promise<string[]> {
     const images: string[] = [];
 
@@ -112,6 +119,7 @@ export class ParserService {
     const doc = await this.getDocument(url);
     this.setDoc(doc);
 
+    const title = this.getTitle();
     const description = this.getDescription();
     const images = await this.getImages();
     const localImages: string[] = [];
@@ -154,6 +162,7 @@ export class ParserService {
     }
 
     return {
+      title,
       description,
       images: localImages,
       phone,

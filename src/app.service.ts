@@ -59,7 +59,7 @@ export class AppService {
     }
   }
 
-  @Cron('1 * * * *')
+  @Cron('*/20 * * * * *')
   async parseLastAdvert(): Promise<AdvertDetails | undefined> {
     const link = await this.prisma.queueLink.findFirst({
       orderBy: { createdAt: 'desc' },
@@ -79,6 +79,15 @@ export class AppService {
 
       if (!generated) {
         console.log('Объявление отклонено ИИ');
+        return;
+      }
+
+      const existing = await this.prisma.product.findUnique({
+        where: { sourceUrl: generated.sourceUrl },
+      });
+
+      if (existing) {
+        console.log('Объявление уже существует');
         return;
       }
 

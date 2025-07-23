@@ -16,9 +16,9 @@ export function productFilters(
     where.cityId = cityId;
   }
 
-  // if (search) {
-  //   where.title = { contains: search, mode: 'insensitive' };
-  // }
+  if (search) {
+    where.title = { contains: search, mode: 'insensitive' };
+  }
 
   if (priceFrom !== undefined || priceTo !== undefined) {
     where.price = {};
