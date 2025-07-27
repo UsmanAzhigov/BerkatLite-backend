@@ -49,17 +49,19 @@ export class ProductService {
   async getOne(id: string): Promise<AdvertDetails> {
     const product = await this.prisma.product.findUnique({ where: { id } });
     if (!product) throw new Error(`Объявление ${id} не найдено`);
-
+  
     const updated = await this.prisma.product.update({
       where: { id },
       data: { views: { increment: 1 } },
     });
-
+  
     return {
       ...updated,
+      title: updated.title ?? '',
       properties: (updated.properties as unknown as AdvertProperty[]) ?? [],
     };
   }
+  
 
   async createProduct(data: AdvertDetails): Promise<AdvertDetails | undefined> {
     try {
@@ -75,6 +77,7 @@ export class ProductService {
 
       return {
         ...product,
+        title: product.title ?? '',
         properties: product.properties as unknown as AdvertProperty[],
       };
     } catch (_) {
