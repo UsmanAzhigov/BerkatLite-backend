@@ -1,10 +1,10 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as express from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -23,6 +23,7 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, documentFactory);
 
   const uploadsDir = path.join(__dirname, '..', 'uploads');
+
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
     console.log('📁 Папка uploads создана');
@@ -30,6 +31,6 @@ async function bootstrap() {
 
   app.use('/uploads', express.static(uploadsDir));
 
-  await app.listen(process.env.PORT ?? 7777);
+  await app.listen(3000);
 }
 bootstrap();
