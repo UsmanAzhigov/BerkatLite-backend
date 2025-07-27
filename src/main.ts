@@ -29,8 +29,10 @@ async function bootstrap() {
     console.log('📁 Папка uploads создана');
   }
 
+  console.log('DATABASE_URL:', process.env.DATABASE_URL);
+
   app.use('/uploads', express.static(uploadsDir));
 
-  await app.listen(3000);
+  await app.listen(process.env.PORT || 7777);
 }
 bootstrap();
