@@ -57,8 +57,4 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
 
-<<<<<<< HEAD
-uploads/
-=======
 /uploads
->>>>>>> a7529d9ba225c8f2444a452f97abd53791cb1c93
