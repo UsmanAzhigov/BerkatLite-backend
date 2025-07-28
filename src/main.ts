@@ -15,7 +15,6 @@ async function bootstrap() {
     origin: [
       'http://berkat-lite.ru',
       'http://188.225.72.89',
-      'http://localhost:5173',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
