@@ -12,7 +12,11 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   app.enableCors({
-    origin: ['http://berkat-lite.ru', 'http://188.225.72.89'],
+    origin: [
+      'http://berkat-lite.ru',
+      'http://188.225.72.89',
+      'http://localhost:5173',
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -34,6 +38,6 @@ async function bootstrap() {
 
   app.use('/uploads', express.static(uploadsDir));
 
-  await app.listen(process.env.PORT || 3000);
+  await app.listen(process.env.PORT || 7777);
 }
 bootstrap();

@@ -156,7 +156,7 @@ export class ParserService {
       try {
         const localPath = await uploader(imageUrl, 'uploads', i);
         localImages.push(
-          `http://localhost:${process.env.PORT ?? 3000}${localPath}`,
+          `http://berkat-lite.ru:${process.env.PORT ?? 3000}${localPath}`,
         );
       } catch (err) {
         console.error(`Не удалось скачать ${imageUrl}:`, err.message);
