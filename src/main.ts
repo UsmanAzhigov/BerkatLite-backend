@@ -12,16 +12,12 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   app.enableCors({
-    origin: [
-      'http://berkat-lite.ru',
-      'http://188.225.72.89',
-      'http://localhost:5173',
-    ],
+    origin: ['http://berkat-lite.ru', 'http://188.225.72.89'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-  const config = new DocumentBuilder()
+  const config = new DocumentBuilder()  
     .setTitle('Product API')
     .setDescription('The product API description')
     .setVersion('1.0')
