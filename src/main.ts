@@ -12,10 +12,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   app.enableCors({
-    origin: [
-      'http://berkat-lite.ru',
-      'http://188.225.72.89',
-    ],
+    origin: ['http://berkat-lite.ru', 'https://berkat-lite.ru'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
