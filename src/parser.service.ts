@@ -156,9 +156,7 @@ export class ParserService {
       try {
         const localPath = await uploader(imageUrl, 'uploads', i);
         localImages.push(
-          `${process.env.APP_URL ?? 'http://localhost'}:${
-            process.env.PORT ?? 7777
-          }${localPath}`,
+          `${process.env.APP_URL ?? 'http://localhost'}${localPath}`,
         );
       } catch (err) {
         console.error(`Не удалось скачать ${imageUrl}:`, err.message);
