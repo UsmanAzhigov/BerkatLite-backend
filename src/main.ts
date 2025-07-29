@@ -17,15 +17,16 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const config = new DocumentBuilder()  
-    .setTitle('Product API')
-    .setDescription('The product API description')
-    .setVersion('1.0')
-    .build();
+  if (process.env.NODE_ENV === 'development') {
+    const config = new DocumentBuilder()
+      .setTitle('API')
+      .setDescription('Документация')
+      .setVersion('1.0')
+      .build();
 
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
-
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document);
+  }
   const uploadsDir = path.join(__dirname, '..', 'uploads');
 
   if (!fs.existsSync(uploadsDir)) {
