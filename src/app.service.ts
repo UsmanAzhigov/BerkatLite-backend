@@ -60,26 +60,27 @@ export class AppService {
   }
 
   @Cron('*/20 * * * * *')
-  async parseLastAdvert(): Promise<AdvertDetails | undefined> {
-    const link = await this.prisma.queueLink.findFirst({
-      orderBy: { createdAt: 'desc' },
-    });
+async parseLastAdvert(): Promise<void> {
+  const links = await this.prisma.queueLink.findMany({
+    orderBy: { createdAt: 'asc' },
+    take: 2,
+  });
 
-    if (!link) {
-      console.log('Ссылок нет');
-      return;
-    }
+  if (links.length === 0) {
+    console.log('Ссылок нет');
+    return;
+  }
 
+  for (const link of links) {
     try {
       const details = await this.parserService.getOneAdvertDetails(link.link);
-
-      await this.prisma.queueLink.delete({ where: { id: link.id } });
 
       const generated = await this.generateService.generateAdvert(details);
 
       if (!generated) {
-        console.log('Объявление отклонено ИИ');
-        return;
+        console.log('Объявление отклонено ИИ или по типу сделки:', link.link);
+        await this.prisma.queueLink.delete({ where: { id: link.id } });
+        continue;
       }
 
       const existing = await this.prisma.product.findUnique({
@@ -87,14 +88,17 @@ export class AppService {
       });
 
       if (existing) {
-        console.log('Объявление уже существует');
-        return;
+        console.log('Объявление уже существует:', link.link);
+        await this.prisma.queueLink.delete({ where: { id: link.id } });
+        continue;
       }
 
       await this.productService.createProduct(generated);
+      await this.prisma.queueLink.delete({ where: { id: link.id } });
     } catch (error) {
-      console.error('Ошибка при обработке объявления:', error.message);
+      console.error('Ошибка при обработке объявления:', link.link, error.message);
       await this.prisma.queueLink.delete({ where: { id: link.id } });
     }
   }
+}
 }

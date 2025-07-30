@@ -39,7 +39,11 @@ export class GenerateService {
         ),
     );
 
-    if (dealType) return null;
+    if (dealType) {
+      console.log('Отклонено: сделка типа "ищу/куплю"');
+      return null;
+    }
+
 
     const detailsStr = `
     <title>${details.title}</title>
@@ -72,6 +76,7 @@ export class GenerateService {
     );
 
     if (result.is_bad_ad) {
+      console.log('Отклонено ИИ: плохое объявление');
       return null;
     }
 
