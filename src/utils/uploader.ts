@@ -6,15 +6,15 @@ export async function uploader(
   url: string,
   folder: string,
   index = 0,
+  advertId = 'unknown',
 ): Promise<string> {
   const originalName = path.basename(url).split('?')[0];
-  const ext = path.extname(originalName);
-  const base = path.basename(originalName, ext);
-  const uniqueName = `${base}-${index}${ext}`;
+  const ext = path.extname(originalName) || '.jpg';
+
+  const uniqueName = `${advertId}-${index}${ext}`;
   const filePath = path.join(folder, uniqueName);
 
   const writer = fs.createWriteStream(filePath);
-
   const response = await axios({
     url,
     method: 'GET',

@@ -131,6 +131,8 @@ export class ParserService {
     const sourceUrl = url;
     const cityName = this.getCityName();
     const categoryName = this.getCategoryName();
+    const advertId = url.split('/').pop()?.split('-')[0] ?? Date.now().toString();
+    console.log(advertId);
 
     if (!cityName) throw new Error('Не удалось найти город');
 
@@ -154,7 +156,7 @@ export class ParserService {
     for (let i = 0; i < images.length; i++) {
       const imageUrl = images[i];
       try {
-        const localPath = await uploader(imageUrl, 'uploads', i);
+        const localPath = await uploader(imageUrl, 'uploads', i, advertId);
         localImages.push(
           `${process.env.APP_URL ?? 'http://localhost'}${localPath}`,
         );
