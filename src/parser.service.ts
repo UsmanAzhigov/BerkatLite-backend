@@ -24,21 +24,26 @@ export class ParserService {
 
   private async getImages(): Promise<string[]> {
     const images: string[] = [];
-
-    this.doc('.fotorama img').each((_, el) => {
-      const src = this.doc(el).attr('src');
-      const hasDomain = src?.startsWith('http');
-
-      if (src) {
-        const fullUrl = hasDomain ? src : `https://berkat.ru${src}`;
-        if (!images.includes(fullUrl)) {
-          images.push(fullUrl);
-        }
-      }
+  
+    const push = (src?: string | null) => {
+      if (!src) return;
+      const url = src.startsWith('http') ? src : `https://berkat.ru${src}`;
+      if (!images.includes(url)) images.push(url);
+    };
+  
+    this.doc('.fotorama__stage img').each((_, el) => {
+      push(this.doc(el).attr('src'));
     });
-
+  
+    if (images.length === 0) {
+      this.doc('.fotorama__nav__frame img').each((_, el) => {
+        push(this.doc(el).attr('src'));
+      });
+    }
+  
     return images;
   }
+  
 
   private getPhone(): string | null {
     return this.doc('[href^="tel:"]').attr('href')?.replace('tel:', '') ?? null;
@@ -131,8 +136,8 @@ export class ParserService {
     const sourceUrl = url;
     const cityName = this.getCityName();
     const categoryName = this.getCategoryName();
-    const advertId = url.split('/').pop()?.split('-')[0] ?? Date.now().toString();
-    console.log(advertId);
+    const advertId =
+      url.split('/').pop()?.split('-')[0] ?? Date.now().toString();
 
     if (!cityName) throw new Error('Не удалось найти город');
 
